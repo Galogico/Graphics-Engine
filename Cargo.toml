@@ -1,0 +1,8 @@
+[package]
+name = "Logico"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+"glium" = "0.36.0"
+"image" = "0.25.6"
