@@ -1,13 +1,19 @@
 #[macro_use]
 extern crate glium;
-use std::time::Instant;
+use std::{collections::HashSet, time::Instant};
 
 use image;
-use glium::{winit::event_loop::ControlFlow, Surface};
+use glium::{winit::{event::ElementState, event_loop::ControlFlow, keyboard::{KeyCode, PhysicalKey}}, Surface}; 
+use glutin::{self};
 mod shaders;
 mod shapes;
 
 fn main() {
+    let mut pressed_keys: HashSet<KeyCode> = HashSet::new();
+
+
+
+
     let image = image::load(std::io::Cursor::new(&include_bytes!("image.png")),
                         image::ImageFormat::Png).unwrap().to_rgba8();
     let image_dimensions = image.dimensions();
@@ -18,7 +24,7 @@ fn main() {
         .build()
         .expect("event loop building");
     let (window, display) = glium::backend::glutin::SimpleWindowBuilder::new()
-        .with_title("Spinning Porg")
+        .with_title("Spinning Image")
         .build(&event_loop);
 
     let texture: glium::texture::Texture2d = glium::texture::Texture2d::new(&display, image).unwrap();
@@ -34,7 +40,7 @@ fn main() {
         shapes::Vertex { position: [ -0.5, -0.5], tex_coords:[0.0, 0.0]}
     ];
 
-    let player = shapes::Object{
+    let mut player = shapes::GameObject{
         position: [0.0 ,0.0],
         rotation: 0.0 ,
         scale: [1.0, 1.0],
@@ -49,7 +55,8 @@ fn main() {
 
     let program = glium::Program::from_source(&display, shaders::vertex_shader_src, shaders::fragment_shader_src, None).unwrap();
 
-    let mut t: f32 = 0.0;
+    let mut y: f32 = 0.0;
+    let mut x: f32 = 0.0;
 
 
     let mut start = Instant::now();
@@ -76,8 +83,11 @@ fn main() {
                         start = Instant::now();
                     }
 
+                    if pressed_keys.contains(&KeyCode::KeyW) {
+                        y += 0.01;
+                    }
 
-                    t += 0.02;
+                    player.setPosition([x, y]);
 
                     let mut target = display.draw();
                     target.clear_color(0.0, 0.05, 0.1, 1.0);
@@ -95,7 +105,30 @@ fn main() {
                 glium::winit::event::WindowEvent::Resized(window_size) => {
                     display.resize(window_size.into());
                 },
+
+                glium::winit::event::WindowEvent::KeyboardInput { event:
+                glium::winit::event::KeyEvent {
+                physical_key: PhysicalKey::Code(key_code),
+                state: ElementState::Pressed,
+                ..
+                }, 
+                 ..
+                } => {
+                    pressed_keys.insert(key_code);
+                }
                 
+
+                glium::winit::event::WindowEvent::KeyboardInput { event:
+                glium::winit::event::KeyEvent {
+                physical_key: PhysicalKey::Code(key_code),
+                state: ElementState::Released,
+                ..
+                }, 
+                 ..
+                } => {
+                    pressed_keys.remove(&key_code);
+                },
+
                 _ => (),
             },
             // By requesting a redraw in response to a AboutToWait event we get continuous rendering.
@@ -103,6 +136,7 @@ fn main() {
             glium::winit::event::Event::AboutToWait => {
                 window.request_redraw();
             },
+            
             _ => (),
         }
     })
